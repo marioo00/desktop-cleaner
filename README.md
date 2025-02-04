@@ -13,5 +13,6 @@ creating subfolders like Images, Documents, Music, and more.
 
 - Python 3.6 or higher
 - shutil (built-in), os (built-in)
+- Linux
 
 
