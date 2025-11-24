@@ -1,6 +1,7 @@
-import os
+from pathlib import Path
 import shutil
 
+# Maps file extensions to folders
 EXTENSION_MAP = {
     '.jpg': 'Images',
     '.jpeg': 'Images',
@@ -15,64 +16,62 @@ EXTENSION_MAP = {
     '.pptx': 'Powerpoint'
 }
 
-def get_files_in_directory(directory):
-    
-    #Returns a list of file paths in the given directory.
+def get_files_in_directory(directory: Path):
+    """
+    Return a list of file Paths in the given directory (non-recursive).
+    """
+    return [item for item in directory.iterdir() if item.is_file()]
 
-    all_files = []
-    for item in os.listdir(directory):
-        item_path = os.path.join(directory, item)
-        if os.path.isfile(item_path):
-            all_files.append(item_path)
-    return all_files
-
-#Organizes files in the source directory by their extensions.
-def organize_by_extension(source_directory):
-    
-    
-    #Get the list of files from the source directory
+def organize_by_extension(source_directory: Path):
+    """
+    Organize files into folders based on their extensions.
+    """
     files = get_files_in_directory(source_directory)
-    
+
     for file_path in files:
-        #Extract the file extension
-        _, ext = os.path.splitext(file_path)
-        ext = ext.lower() #Standardizes to lowercase
-        
-        #Decide on folder name based on extension
+        ext = file_path.suffix.lower()
         folder_name = EXTENSION_MAP.get(ext, 'Others')
-       
-        #Construct the full path of the target folder
-        target_folder = os.path.join(source_directory, folder_name)
-        
-        #Creates the target folder if it doesn't exist
-        if not os.path.exists(target_folder):
-            os.makedirs(target_folder)
-        
-        #Constructs the full path for the new file location
-        file_name = os.path.basename(file_path)
-        new_path = os.path.join(target_folder, file_name)
-       
-        #Moves the file from the source directory to the target folder
-        shutil.move(file_path, new_path)
-        
-        #Prints a message to show what happened
-        print(f"Moved {file_name} to {folder_name}")
-        pass
+        target_folder = source_directory / folder_name
+        target_folder.mkdir(exist_ok=True)
+
+        new_path = target_folder / file_path.name
+
+        try:
+            shutil.move(str(file_path), str(new_path))
+            print(f"Moved {file_path.name} to {folder_name}")
+        except Exception as e:
+            print(f"Error moving {file_path.name}: {e}")
+
 def main():
-    
-    #Main function 
-    
-    source_directory = input("Enter the directory to clean (ex. /Users/You/Desktop): ")
-    
-    # Prints out the files to check that it's working
+    """
+    Main function:
+    - Asks user for the directory path
+    - Lists files found
+    - Asks for confirmation before moving files
+    """
+    # Prompt user to enter the path
+    source_directory_input = input("Enter the directory to clean (e.g. /Users/You/Desktop): ")
+    source_directory = Path(source_directory_input).expanduser().resolve()
+
+    if not source_directory.is_dir():
+        print(f"Error: {source_directory} is not a valid directory.")
+        return
+
     files = get_files_in_directory(source_directory)
-    print("Found the following files:")
+    if not files:
+        print("No files found in the specified directory.")
+        return
+
+    print("\nFound the following files:")
     for f in files:
-        print(f)
-    
-    # Calls the organizer function
-    organize_by_extension(source_directory)
-    print("Organization complete!")
+        print(f" - {f.name}")
+
+    proceed = input("\nProceed with organizing these files? (y/n): ").strip().lower()
+    if proceed == 'y':
+        organize_by_extension(source_directory)
+        print("Organization complete!")
+    else:
+        print("Operation cancelled.")
 
 if __name__ == "__main__":
     main()
